@@ -10,6 +10,9 @@ using System.Windows.Forms;
 using SSOWithPing.Helper;
 using System.Net.Http;
 using Newtonsoft.Json;
+using CefSharp.WinForms;
+using CefSharp;
+using System.Web;
 
 namespace SSOWithPing
 {
@@ -21,8 +24,41 @@ namespace SSOWithPing
         public UserControl1()
         {
             InitializeComponent();
+            InitializeChromium();
             // Register the Load event to initialize components once the control is fully loaded.
             this.Load += UserControl1_Load;
+
+        }
+        // Set up the Chromium Embedded Framework (CEF) browser
+        private void InitializeChromium()
+        {
+            CefSettings settings = new CefSettings();
+            // Initialization settings for CEF can be configured here
+            Cef.Initialize(settings);
+
+            // Create the ChromiumWebBrowser component and add it to the form
+            browser = new ChromiumWebBrowser("about:blank")
+            {
+                Dock = DockStyle.Fill
+            };
+            this.Controls.Add(browser);
+
+            // Subscribe to the FrameLoadEnd event to handle redirects and capture the authorization code
+            browser.FrameLoadEnd += Browser_FrameLoadEnd;
+        }
+
+        // Handles the page load events to capture the OAuth redirect and extract the authorization code
+        private void Browser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)
+        {
+            if (e.Url.StartsWith("http://localhost:64663/callback"))
+            {
+                var uri = new Uri(e.Url);
+                var code = System.Web.HttpUtility.ParseQueryString(uri.Query).Get("code");
+                if (!string.IsNullOrEmpty(code))
+                {
+                    ProcessAuthentication(code).ConfigureAwait(false);
+                }
+            }
         }
 
         private void UserControl1_Load(object sender, EventArgs e)
@@ -61,7 +97,8 @@ namespace SSOWithPing
                 string authorizationUrl = AuthenticationHelper.CreateAuthorizationUrl(clientId, redirectUri, codeChallenge);
 
                 // Start the authentication process by opening the authorization URL in the browser.
-                System.Diagnostics.Process.Start(authorizationUrl);
+                //System.Diagnostics.Process.Start(authorizationUrl);
+                browser.Load(authorizationUrl);
             }
             catch (Exception ex)
             {
@@ -70,7 +107,7 @@ namespace SSOWithPing
             }
         }
 
-
+        // Update the UI to reflect successful login
         public void UpdateUIOnSuccess(string message)
         {
             // Thread safety check to ensure UI updates happen on the correct thread.
@@ -85,6 +122,7 @@ namespace SSOWithPing
             lblStatus.Text = message;
         }
 
+        // Update the UI to show errors during the login process
         public void UpdateUIOnError(string message)
         {
             // Thread safety check to ensure UI updates happen on the correct thread.
