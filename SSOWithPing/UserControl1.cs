@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using SSOWithPing.Helper;
 using System.Net.Http;
 using Newtonsoft.Json;
+using CefSharp.WinForms;
 
 namespace SSOWithPing
 {
