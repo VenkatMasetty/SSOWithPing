@@ -31,24 +31,8 @@ namespace SSOWithPing
             this.Load += UserControl1_Load;
 
         }
-        // Set up the Chromium Embedded Framework (CEF) browser
-        //private void InitializeChromium()
-        //{
-        //    CefSettings settings = new CefSettings();
-        //    // Initialization settings for CEF can be configured here
-        //    Cef.Initialize(settings);
-
-        //    // Create the ChromiumWebBrowser component and add it to the form
-        //    browser = new ChromiumWebBrowser("about:blank")
-        //    {
-        //        Dock = DockStyle.Fill
-        //    };
-        //    this.Controls.Add(browser);
-
-        //    // Subscribe to the FrameLoadEnd event to handle redirects and capture the authorization code
-        //    browser.FrameLoadEnd += Browser_FrameLoadEnd;
-        //}
-        // Set up the Chromium Embedded Framework (CEF) browser
+       
+        // Set up the Embedded Framework (CEF) browser
         private void InitializeWebBrowser()
         {
            // CefSettings settings = new CefSettings();
@@ -75,7 +59,7 @@ namespace SSOWithPing
                 var code = System.Web.HttpUtility.ParseQueryString(uri.Query).Get("code");
                 if (!string.IsNullOrEmpty(code))
                 {
-                    ProcessAuthentication(code).ConfigureAwait(false);
+                    ProcessAuthentication(code);
                 }
             }
         }
@@ -117,6 +101,7 @@ namespace SSOWithPing
 
                 // Start the authentication process by opening the authorization URL in the browser.
                 //System.Diagnostics.Process.Start(authorizationUrl);
+                webBrowser.Visible = true;
                 webBrowser.Navigate(authorizationUrl);
             }
             catch (Exception ex)
@@ -138,6 +123,7 @@ namespace SSOWithPing
 
             // Update the UI to reflect successful login and hide the login button.
             btnLogin.Visible = false;
+            webBrowser.DocumentText = message;
             lblStatus.Text = message;
         }
 
