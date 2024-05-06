@@ -12,6 +12,7 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using CefSharp.WinForms;
 using CefSharp;
+using System.Web;
 
 namespace SSOWithPing
 {
@@ -28,7 +29,25 @@ namespace SSOWithPing
             InitializeWebBrowser();
             // Register the Load event to initialize components once the control is fully loaded.
             this.Load += UserControl1_Load;
+
         }
+        // Set up the Chromium Embedded Framework (CEF) browser
+        //private void InitializeChromium()
+        //{
+        //    CefSettings settings = new CefSettings();
+        //    // Initialization settings for CEF can be configured here
+        //    Cef.Initialize(settings);
+
+        //    // Create the ChromiumWebBrowser component and add it to the form
+        //    browser = new ChromiumWebBrowser("about:blank")
+        //    {
+        //        Dock = DockStyle.Fill
+        //    };
+        //    this.Controls.Add(browser);
+
+        //    // Subscribe to the FrameLoadEnd event to handle redirects and capture the authorization code
+        //    browser.FrameLoadEnd += Browser_FrameLoadEnd;
+        //}
         // Set up the Chromium Embedded Framework (CEF) browser
         private void InitializeWebBrowser()
         {
@@ -107,7 +126,7 @@ namespace SSOWithPing
             }
         }
 
-
+        // Update the UI to reflect successful login
         public void UpdateUIOnSuccess(string message)
         {
             // Thread safety check to ensure UI updates happen on the correct thread.
@@ -122,6 +141,7 @@ namespace SSOWithPing
             lblStatus.Text = message;
         }
 
+        // Update the UI to show errors during the login process
         public void UpdateUIOnError(string message)
         {
             // Thread safety check to ensure UI updates happen on the correct thread.
