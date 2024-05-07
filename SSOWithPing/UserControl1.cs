@@ -15,6 +15,7 @@ using CefSharp;
 using System.Web;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using IdentityModel.OidcClient;
 
 namespace SSOWithPing
 {
@@ -22,6 +23,7 @@ namespace SSOWithPing
     {
         private HttpServer server;
         private string currentCodeVerifier;
+        private OidcClient oidcClient;
         private Button btnLogout;
         public UserControl1()
         {
@@ -30,9 +32,27 @@ namespace SSOWithPing
             InitializeLogoutButton();
             Debug.WriteLine("UserControl1: Constructor called.");
         }
-        
+        private void InitializeOidc()
+        {
+            var options = new OidcClientOptions
+            {
+                Authority = "https://auth.pingone.com/86b8fad2-8f13-4c8d-93b4-6c9affb63b20",
+                ClientId = "d6acae5c-6a3b-4af0-9d26-06270b933815",
+                Scope = "openid profile",
+                RedirectUri = "http://localhost:64663/callback",
+                Browser = new SystemBrowser(64663)
+            };
+            oidcClient = new OidcClient(options);
+        }
+
         private void InitializeLogoutButton()
         {
+            btnLogout = new Button
+            {
+                Text = "Logout",
+                Location = new Point(10, 80),
+                Visible = false
+            };
             btnLogout.Click += BtnLogout_Click;
             this.Controls.Add(btnLogout);
         }
@@ -69,7 +89,7 @@ namespace SSOWithPing
                 string authorizationUrl = AuthenticationHelper.CreateAuthorizationUrl(clientId, redirectUri, codeChallenge);
 
                 // Start the authentication process by opening the authorization URL in the browser.
-                    System.Diagnostics.Process.Start(authorizationUrl);
+                System.Diagnostics.Process.Start(authorizationUrl);
             }
             catch (Exception ex)
             {
@@ -151,8 +171,19 @@ namespace SSOWithPing
 
             // Update the UI to reflect successful login and hide the login button.
             btnLogin.Visible = false;
+            btnLogout.Visible = true;
             //webBrowser.DocumentText = message;
             lblStatus.Text = message;
+            OpenForm1();
+        }
+
+        private void OpenForm1()
+        {
+            if (this.ParentForm != null)
+
+            { this.ParentForm.Hide(); }
+            Form1 form = new Form1();
+            form.Show();
         }
 
         // Update the UI to show errors during the login process
@@ -189,7 +220,7 @@ namespace SSOWithPing
             lblStatus.Text = "Logged out. Please log in again.";
 
             // Clear any local settings if stored
-           // ClearLocalSettings();
+            // ClearLocalSettings();
         }
     }
 }

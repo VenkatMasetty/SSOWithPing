@@ -17,7 +17,6 @@ namespace SSOWithPing.Helper
         public delegate Task AuthorizationCodeReceivedHandler(string code);
         public event AuthorizationCodeReceivedHandler OnAuthorizationCodeReceived;
 
-       // public Action<string> OnAuthorizationCodeReceived; // Delegate to handle the authorization code
 
         public HttpServer(string url)
         {

@@ -18,10 +18,10 @@ namespace SSOWithPing
 
         private void InitializeTabs()
         {
-            // Setting up the tab names
-           // tabControl1.TabPages[0].Text = "User Data";
-            //tabControl1.TabPages[1].Text = "Settings";
-            //tabControl1.TabPages[2].Text = "Statistics";
+            //Setting up the tab names
+            tabControl1.TabPages[0].Text = "User Data";
+            tabControl1.TabPages[1].Text = "Settings";
+            tabControl1.TabPages[2].Text = "Statistics";
         }
         private void SetupLogoutButton()
         {
@@ -46,6 +46,10 @@ namespace SSOWithPing
             {
                 MessageBox.Show("Please log in to access the dashboard.");
                 this.Close(); // Close the form if not authenticated
+            }
+            else
+            {
+                SetupLogoutButton();
             }
         }
     }
