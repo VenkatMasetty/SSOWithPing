@@ -31,13 +31,14 @@
             this.btnLogin = new System.Windows.Forms.Button();
             this.lblStatus = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
+            this.BtnLogout = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnLogin
             // 
-            this.btnLogin.Location = new System.Drawing.Point(157, 287);
+            this.btnLogin.Location = new System.Drawing.Point(98, 740);
             this.btnLogin.Name = "btnLogin";
-            this.btnLogin.Size = new System.Drawing.Size(356, 84);
+            this.btnLogin.Size = new System.Drawing.Size(280, 84);
             this.btnLogin.TabIndex = 0;
             this.btnLogin.Text = "Login";
             this.btnLogin.UseVisualStyleBackColor = true;
@@ -59,15 +60,26 @@
             this.label1.Size = new System.Drawing.Size(0, 37);
             this.label1.TabIndex = 2;
             // 
+            // BtnLogout
+            // 
+            this.BtnLogout.Location = new System.Drawing.Point(826, 740);
+            this.BtnLogout.Name = "BtnLogout";
+            this.BtnLogout.Size = new System.Drawing.Size(249, 84);
+            this.BtnLogout.TabIndex = 3;
+            this.BtnLogout.Text = "Logout";
+            this.BtnLogout.UseVisualStyleBackColor = true;
+            this.BtnLogout.Click += new System.EventHandler(this.BtnLogout_Click);
+            // 
             // UserControl1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(19F, 37F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.Controls.Add(this.BtnLogout);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.lblStatus);
             this.Controls.Add(this.btnLogin);
             this.Name = "UserControl1";
-            this.Size = new System.Drawing.Size(800, 450);
+            this.Size = new System.Drawing.Size(1563, 1071);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -78,5 +90,6 @@
         private System.Windows.Forms.Button btnLogin;
         private System.Windows.Forms.Label lblStatus;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button BtnLogout;
     }
 }

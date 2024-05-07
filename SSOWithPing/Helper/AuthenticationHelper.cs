@@ -39,7 +39,16 @@ namespace SSOWithPing.Helper
 
         public static string CreateAuthorizationUrl(string clientId, string redirectUri, string codeChallenge)
         {
-            return $"https://auth.pingone.com/86b8fad2-8f13-4c8d-93b4-6c9affb63b20/as/authorize?response_type=code&client_id={clientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}&code_challenge={codeChallenge}&code_challenge_method=S256&scope=openid%20email%20profile";
+            return $"https://auth.pingone.com/86b8fad2-8f13-4c8d-93b4-6c9affb63b20/as/authorize?" +
+           $"response_type=code&client_id={clientId}&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
+           $"&code_challenge={codeChallenge}&code_challenge_method=S256" +
+           $"&scope=openid%20email%20profile&prompt=login";
         }
+       
+
+    }
+    public static class AuthenticationState
+    {
+        public static bool IsAuthenticated { get; set; } = false; // default to false
     }
 }

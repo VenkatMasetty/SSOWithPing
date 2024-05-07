@@ -13,6 +13,8 @@ using Newtonsoft.Json;
 using CefSharp.WinForms;
 using CefSharp;
 using System.Web;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace SSOWithPing
 {
@@ -20,73 +22,40 @@ namespace SSOWithPing
     {
         private HttpServer server;
         private string currentCodeVerifier;
-        //private ChromiumWebBrowser browser;
-        private WebBrowser webBrowser;
+        private Button btnLogout;
         public UserControl1()
         {
             InitializeComponent();
-            //InitializeChromium();
-            InitializeWebBrowser();
-            // Register the Load event to initialize components once the control is fully loaded.
             this.Load += UserControl1_Load;
-
+            InitializeLogoutButton();
+            Debug.WriteLine("UserControl1: Constructor called.");
         }
-       
-        // Set up the Embedded Framework (CEF) browser
-        private void InitializeWebBrowser()
+        
+        private void InitializeLogoutButton()
         {
-           // CefSettings settings = new CefSettings();
-            // Initialization settings for CEF can be configured here
-           // Cef.Initialize(settings);
-
-            // Create the WebBrowser component and add it to the form
-            webBrowser = new WebBrowser
-            {
-                Dock = DockStyle.Fill
-            };
-            this.Controls.Add(webBrowser);
-
-            // Subscribe to the FrameLoadEnd event to handle redirects and capture the authorization code
-            webBrowser.DocumentCompleted += WebBrowser_DocumentCompleted;
+            btnLogout.Click += BtnLogout_Click;
+            this.Controls.Add(btnLogout);
         }
-
-        // Handles the page load events to capture the OAuth redirect and extract the authorization code
-        private void WebBrowser_DocumentCompleted(object sender, WebBrowserDocumentCompletedEventArgs e)
-        {
-            if (e.Url.ToString().StartsWith("http://localhost:64663/callback"))
-            {
-                var uri = new Uri(e.Url.ToString());
-                var code = System.Web.HttpUtility.ParseQueryString(uri.Query).Get("code");
-                if (!string.IsNullOrEmpty(code))
-                {
-                    ProcessAuthentication(code);
-                }
-            }
-        }
-
         private void UserControl1_Load(object sender, EventArgs e)
         {
-            // Confirm that the UserControl is attached to a form before initializing the server.
+            SetupServer();
+        }
+
+        private void SetupServer()
+        {
             if (this.ParentForm != null)
             {
-                // Attach to the FormClosed event to properly clean up the server.
                 this.ParentForm.FormClosed += ParentForm_FormClosed;
-                // Initialize the server to listen on a specific port.
                 server = new HttpServer("http://localhost:64663/");
                 server.OnAuthorizationCodeReceived += ProcessAuthentication;
                 server.Start();
+                Debug.WriteLine("Server started.");
             }
-        }
-
-        private void ParentForm_FormClosed(object sender, FormClosedEventArgs e)
-        {
-            // Ensure the server stops listening and cleans up when the form closes.
-            if (server != null)
+            else
             {
-                server.Stop();
+                Debug.WriteLine("ParentForm is null, server setup deferred.");
             }
         }
-
 
         private void btnLogin_Click(object sender, EventArgs e)
         {
@@ -100,9 +69,7 @@ namespace SSOWithPing
                 string authorizationUrl = AuthenticationHelper.CreateAuthorizationUrl(clientId, redirectUri, codeChallenge);
 
                 // Start the authentication process by opening the authorization URL in the browser.
-                //System.Diagnostics.Process.Start(authorizationUrl);
-                webBrowser.Visible = true;
-                webBrowser.Navigate(authorizationUrl);
+                    System.Diagnostics.Process.Start(authorizationUrl);
             }
             catch (Exception ex)
             {
@@ -110,8 +77,69 @@ namespace SSOWithPing
                 MessageBox.Show("Failed to start authentication process: " + ex.Message);
             }
         }
+        private async Task ProcessAuthentication(string code)
+        {
+            try
+            {
+                string tokensJson = await ExchangeCodeForTokens(code, currentCodeVerifier);
+                var tokenData = JsonConvert.DeserializeObject<dynamic>(tokensJson);
+                string accessToken = tokenData.access_token;
+                AuthenticationState.IsAuthenticated = true;
+                UpdateUIOnSuccess("Login successful! Welcome.");
+            }
+            catch (HttpRequestException ex)
+            {
+                UpdateUIOnError($"Login failed: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Handle other possible exceptions
+                UpdateUIOnError($"An error occurred: {ex.Message}");
+            }
+        }
 
-        // Update the UI to reflect successful login
+        private async Task<string> ExchangeCodeForTokens(string authorizationCode, string codeVerifier)
+        {
+            using (var client = new HttpClient())
+            {
+                var tokenEndpoint = "https://auth.pingone.com/86b8fad2-8f13-4c8d-93b4-6c9affb63b20/as/token";
+                var values = new Dictionary<string, string>
+             {
+            {"grant_type", "authorization_code"},
+            {"code", authorizationCode},
+            {"redirect_uri", "http://localhost:64663/callback"},
+            {"client_id", "d6acae5c-6a3b-4af0-9d26-06270b933815"},
+            {"code_verifier", codeVerifier}  // PKCE support
+            };
+
+                var content = new FormUrlEncodedContent(values);
+                var response = await client.PostAsync(tokenEndpoint, content);
+                var responseString = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    Debug.WriteLine($"Failed to exchange code for tokens: {response.StatusCode} - {responseString}");
+                    var errorDetails = ParseOAuthError(responseString);
+                    throw new HttpRequestException($"Request failed - {errorDetails}");
+                }
+
+                return responseString;  // Consider returning a more specific piece of data, like an access token
+            }
+        }
+
+        private string ParseOAuthError(string jsonResponse)
+        {
+            try
+            {
+                var errorObj = JsonConvert.DeserializeObject<dynamic>(jsonResponse);
+                return $"{errorObj.error}: {errorObj.error_description}";
+            }
+            catch
+            {
+                return "Failed to parse error details from OAuth response.";
+            }
+        }
+
         public void UpdateUIOnSuccess(string message)
         {
             // Thread safety check to ensure UI updates happen on the correct thread.
@@ -123,7 +151,7 @@ namespace SSOWithPing
 
             // Update the UI to reflect successful login and hide the login button.
             btnLogin.Visible = false;
-            webBrowser.DocumentText = message;
+            //webBrowser.DocumentText = message;
             lblStatus.Text = message;
         }
 
@@ -140,50 +168,29 @@ namespace SSOWithPing
             // Display error messages directly in the UI to inform the user.
             lblStatus.Text = message;
         }
-
-        private async Task ProcessAuthentication(string code)
+        private void ParentForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            try
+            // Ensure the server stops listening and cleans up when the form closes.
+            if (server != null)
             {
-                // Call ExchangeCodeForTokens using the code and the stored codeVerifier
-                string tokensJson = await ExchangeCodeForTokens(code, currentCodeVerifier);
-
-                // Deserialize JSON response to extract the access token (add more handling as needed)
-                var tokenData = JsonConvert.DeserializeObject<dynamic>(tokensJson);
-                string accessToken = tokenData.access_token;
-
-                // Update UI on success
-                UpdateUIOnSuccess("Login successful! Welcome.");
-            }
-            catch (Exception ex)
-            {
-                // Handle errors and update UI accordingly
-                UpdateUIOnError("Login failed: " + ex.Message);
+                server.Stop();
             }
         }
 
-
-        private async Task<string> ExchangeCodeForTokens(string authorizationCode, string codeVerifier)
+        private void BtnLogout_Click(object sender, EventArgs e)
         {
-            using (var client = new HttpClient())
-            {
-                var tokenEndpoint = "https://auth.pingone.com/86b8fad2-8f13-4c8d-93b4-6c9affb63b20/as/token"; // Change this to your actual token endpoint
-                var values = new Dictionary<string, string>
-        {
-            {"grant_type", "authorization_code"},
-            {"code", authorizationCode},
-            {"redirect_uri", "http://localhost:64663/callback"},
-            {"client_id", "d6acae5c-6a3b-4af0-9d26-06270b933815"},
-            {"code_verifier", codeVerifier}  // Assuming you're using PKCE
-        };
+            // Clear authentication data
+            string logoutUrl = "http://localhost:64663/logout";
+            System.Diagnostics.Process.Start(logoutUrl);  // This will open the logout URL in the user's default browser
+            AuthenticationState.IsAuthenticated = false;
+            // Update UI to reflect logged-out state
+            btnLogin.Visible = true;
+            btnLogout.Visible = false;
+            lblStatus.Text = "Logged out. Please log in again.";
 
-                var content = new FormUrlEncodedContent(values);
-                var response = await client.PostAsync(tokenEndpoint, content);
-                var responseString = await response.Content.ReadAsStringAsync();
-                return responseString; // For real-world applications, you'd likely want to deserialize this response and handle it accordingly
-            }
+            // Clear any local settings if stored
+           // ClearLocalSettings();
         }
-
     }
 }
 

@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -29,7 +31,7 @@ namespace SSOWithPing.Helper
             try
             {
                 listener.Start();
-                Console.WriteLine("Server started. Listening on " + listeningUrl);
+                Debug.WriteLine("Server started. Listening on " + listeningUrl);
                 ListenForConnections();
             }
             catch (HttpListenerException ex)
@@ -46,7 +48,16 @@ namespace SSOWithPing.Helper
         private void HandleRequest(IAsyncResult result)
         {
             var context = listener.EndGetContext(result);
-            ProcessRequest(context);
+            string path = context.Request.Url.AbsolutePath;
+            if (String.Equals(path, "/logout", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleLogoutRequest(context);
+            }
+            else
+            {
+                // Handle other requests
+                ProcessRequest(context);
+            }
             ListenForConnections(); // Continue listening for new connections
         }
 
@@ -57,7 +68,7 @@ namespace SSOWithPing.Helper
 
             // Extract the authorization code from the query string
             string query = request.Url.Query;
-            var queryParams = System.Web.HttpUtility.ParseQueryString(query);
+            var queryParams = HttpUtility.ParseQueryString(query);
             string code = queryParams["code"];
 
             if (!string.IsNullOrEmpty(code) && OnAuthorizationCodeReceived != null)
@@ -69,6 +80,20 @@ namespace SSOWithPing.Helper
             // Prepare and send the response to the user
             string responseString = "<html><head><title>Authentication Successful</title></head><body>Please return to the app.</body></html>";
             byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+            response.ContentLength64 = buffer.Length;
+            response.OutputStream.Write(buffer, 0, buffer.Length);
+            response.OutputStream.Close();
+        }
+
+        // Hypothetical server-side handler for logout
+        public void HandleLogoutRequest(HttpListenerContext context)
+        {
+            // Clear session cookies or any other session data
+            //ClearSession(context);
+
+            // Send a response to indicate successful logout or redirect to a login page
+            var response = context.Response;
+            var buffer = System.Text.Encoding.UTF8.GetBytes("You have been logged out. <a href='login.html'>Login again</a>");
             response.ContentLength64 = buffer.Length;
             response.OutputStream.Write(buffer, 0, buffer.Length);
             response.OutputStream.Close();
